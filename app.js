@@ -60,7 +60,6 @@ const dom = {
   dictSidebar: $('dict-sidebar'), dictBody: $('dict-body'),
   // Settings
   settingsOverlay: $('settings-overlay'), settingsModal: $('settings-modal'),
-  apiKeyInput: $('api-key-input'),
   // Print
   printSheet: $('print-sheet'), printCards: $('print-cards'), printDate: $('print-date'),
   // Toast / view btns
@@ -76,8 +75,6 @@ function loadCards() {
 function saveCards() {
   localStorage.setItem('docsync_cards', JSON.stringify(state.flashcards));
 }
-function getApiKey() { return localStorage.getItem('docsync_apikey') || ''; }
-function setApiKey(k) { localStorage.setItem('docsync_apikey', k.trim()); }
 
 // ── Toast ─────────────────────────────────────────────────
 let toastTimer;
@@ -334,8 +331,8 @@ async function buildParallelView() {
       dom.parallelBody.appendChild(sep);
 
       const maxParas = Math.max(
-        enPage?.paragraphs.length || 0,
-        koPage?.paragraphs.length || 0
+        enPage?.paragraphs?.length ?? 0,
+        koPage?.paragraphs?.length ?? 0
       );
 
       for (let r = 0; r < maxParas; r++) {
@@ -345,12 +342,12 @@ async function buildParallelView() {
         const enCell = document.createElement('div');
         enCell.className = 'par-cell';
         enCell.dataset.lang = 'en';
-        enCell.textContent  = enPage?.paragraphs[r] || '';
+        enCell.textContent  = enPage?.paragraphs?.[r] ?? '';
 
         const koCell = document.createElement('div');
         koCell.className = 'par-cell';
         koCell.dataset.lang = 'ko';
-        koCell.textContent  = koPage?.paragraphs[r] || '';
+        koCell.textContent  = koPage?.paragraphs?.[r] ?? '';
 
         row.appendChild(enCell);
         row.appendChild(koCell);
@@ -377,18 +374,21 @@ function getSelection() {
   const text = sel.toString().trim();
   if (text.length < 1) return null;
 
-  // Walk up DOM to find which container the selection is in
-  let node = sel.anchorNode;
-  while (node && node !== document.body) {
-    if (node.id === 'panel-en')    return { text, lang: 'en' };
-    if (node.id === 'panel-ko')    return { text, lang: 'ko' };
-    if (node.id === 'parallel-view') {
-      // Try to find the cell's lang
-      const cell = sel.anchorNode?.parentElement?.closest?.('.par-cell');
-      return { text, lang: cell?.dataset.lang || '' };
-    }
-    node = node.parentNode;
-  }
+  // Resolve to an element (text nodes don't have .closest)
+  const anchor = sel.anchorNode?.nodeType === Node.TEXT_NODE
+    ? sel.anchorNode.parentElement
+    : /** @type {Element} */ (sel.anchorNode);
+
+  if (!anchor) return null;
+
+  // Parallel view cells — check first so they take priority
+  const parCell = anchor.closest?.('.par-cell');
+  if (parCell) return { text, lang: parCell.dataset.lang || '' };
+
+  // PDF panels
+  if (anchor.closest?.('#panel-en')) return { text, lang: 'en' };
+  if (anchor.closest?.('#panel-ko')) return { text, lang: 'ko' };
+
   return null;
 }
 
@@ -555,21 +555,9 @@ function closeDictSidebar() {
   dom.dictSidebar.hidden = true;
 }
 
+// Uses Wiktionary — free, no API key required, CORS-open.
 async function lookupWord(term) {
-  const key = getApiKey();
-
   openDictSidebar();
-
-  if (!key) {
-    dom.dictBody.innerHTML = `
-      <div class="dict-no-key">
-        <p>No API key set.<br>
-        Get a free key at
-        <a href="https://krdict.korean.go.kr/openApi/openApiInfo" target="_blank" rel="noopener">krdict.korean.go.kr</a>
-        then click ⚙ Settings.</p>
-      </div>`;
-    return;
-  }
 
   dom.dictBody.innerHTML = `
     <div class="dict-loading">
@@ -577,114 +565,78 @@ async function lookupWord(term) {
       <span>Looking up "${escHtml(term)}"…</span>
     </div>`;
 
-  const params = new URLSearchParams({
-    key,
-    q:           term,
-    sort:        'popular',
-    start:       1,
-    num:         5,
-    translated:  'y',
-    trans_lang:  1,
-  });
+  const url = `https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(term)}`;
 
-  const directUrl = `https://krdict.korean.go.kr/api/search?${params}`;
-
-  let xmlText;
   try {
-    // Attempt direct (works when CORS is open)
-    const res = await fetch(directUrl, { mode: 'cors' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    xmlText = await res.text();
-  } catch {
-    // Fall back to CORS proxy
-    try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`;
-      const res  = await fetch(proxyUrl);
-      const data = await res.json();
-      xmlText = data.contents;
-    } catch (err2) {
+    const res = await fetch(url);
+    if (res.status === 404) {
       dom.dictBody.innerHTML = `
-        <div class="dict-error">
-          Could not reach the KRDict API.<br>
-          Check your API key and internet connection.<br><br>
-          <small>${escHtml(err2.message)}</small>
+        <div class="dict-empty">
+          No entry found for "<strong>${escHtml(term)}</strong>".<br>
+          <small>Try the base/dictionary form of the word,<br>
+          or use the MCP server in Claude Code for richer results.</small>
         </div>`;
       return;
     }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    renderWiktionaryResults(term, data);
+  } catch (err) {
+    dom.dictBody.innerHTML = `<div class="dict-error">Lookup failed: ${escHtml(err.message)}</div>`;
   }
-
-  renderDictResults(term, xmlText);
 }
 
-function renderDictResults(term, xmlText) {
-  let xml;
-  try {
-    xml = new DOMParser().parseFromString(xmlText, 'text/xml');
-  } catch {
-    dom.dictBody.innerHTML = `<div class="dict-error">Could not parse dictionary response.</div>`;
-    return;
-  }
-
-  const items = [...xml.querySelectorAll('item')];
-
+function renderWiktionaryResults(term, data) {
   dom.dictBody.innerHTML = '';
 
-  // Term heading + pronunciation
-  const firstItem = items[0];
-  const pron = firstItem?.querySelector('pronunciation')?.textContent?.trim() || '';
   const termEl = document.createElement('div');
   termEl.className = 'dict-lookup-term';
-  termEl.innerHTML = `${escHtml(term)} ${pron ? `<span class="dict-pron">[${escHtml(pron)}]</span>` : ''}`;
+  termEl.textContent = term;
   dom.dictBody.appendChild(termEl);
 
-  if (!items.length) {
-    const empty = document.createElement('div');
-    empty.className = 'dict-empty';
-    empty.textContent = `No results found for "${term}".`;
-    dom.dictBody.appendChild(empty);
+  // Wiktionary sections by language code — 'ko' for Korean
+  const entries = data['ko'] || data['en'] || [];
+
+  if (!entries.length) {
+    const el = document.createElement('div');
+    el.className = 'dict-empty';
+    el.innerHTML = `
+      No Korean entries for "<strong>${escHtml(term)}</strong>".<br>
+      <small>Coverage varies — try the MCP server in Claude Code<br>
+      for definitions Claude can explain in context.</small>`;
+    dom.dictBody.appendChild(el);
     return;
   }
 
-  // Render up to 5 sense entries
-  let entryCount = 0;
-  outer:
-  for (const item of items) {
-    const word   = item.querySelector('word')?.textContent?.trim() || term;
-    const senses = [...item.querySelectorAll('sense')];
+  let count = 0;
+  for (const entry of entries) {
+    if (count >= 5) break;
+    const pos = entry.partOfSpeech || '';
 
-    for (const sense of senses) {
-      if (entryCount >= 5) break outer;
-      entryCount++;
+    for (const def of (entry.definitions || [])) {
+      if (count >= 5) break;
+      // Strip HTML tags Wiktionary includes in definitions
+      const clean = (def.definition || '').replace(/<[^>]+>/g, '').trim();
+      if (!clean) continue;
+      count++;
 
-      const pos       = sense.querySelector('pos')?.textContent?.trim() || '';
-      const definition = sense.querySelector('definition')?.textContent?.trim() || '';
-      const transWord  = sense.querySelector('trans_word')?.textContent?.trim() || '';
-      const transDfn   = sense.querySelector('trans_dfn')?.textContent?.trim() || '';
-
-      const entry = document.createElement('div');
-      entry.className = 'dict-entry';
-      entry.innerHTML = `
+      const el = document.createElement('div');
+      el.className = 'dict-entry';
+      el.innerHTML = `
         ${pos ? `<span class="dict-pos">${escHtml(pos)}</span>` : ''}
-        <div class="dict-def">${escHtml(definition)}</div>
-        ${transWord ? `
-          <div class="dict-trans">
-            <span class="dict-trans-word">${escHtml(transWord)}</span>
-            ${transDfn ? ` — ${escHtml(transDfn)}` : ''}
-          </div>` : ''}
+        <div class="dict-def">${escHtml(clean)}</div>
         <button class="btn btn-ghost btn-sm dict-add-btn">+ Add to Flashcards</button>`;
 
-      // Wire "Add to Flashcards" from dict entry
-      const addBtn = entry.querySelector('.dict-add-btn');
-      addBtn.addEventListener('click', () => {
-        const ok = saveCard(word, transWord || definition, pron, 'ko');
-        if (ok) {
+      const btn = el.querySelector('.dict-add-btn');
+      btn.addEventListener('click', () => {
+        if (saveCard(term, clean, '', 'ko')) {
           showToast('Card added!');
-          addBtn.textContent = '✓ Added';
-          addBtn.disabled = true;
+          btn.textContent = '✓ Added';
+          btn.disabled = true;
         }
       });
 
-      dom.dictBody.appendChild(entry);
+      dom.dictBody.appendChild(el);
     }
   }
 }
@@ -694,10 +646,8 @@ function renderDictResults(term, xmlText) {
 // =========================================================
 
 function openSettings() {
-  dom.apiKeyInput.value = getApiKey();
   dom.settingsModal.hidden   = false;
   dom.settingsOverlay.hidden = false;
-  setTimeout(() => dom.apiKeyInput.focus(), 50);
 }
 
 function closeSettings() {
@@ -706,9 +656,7 @@ function closeSettings() {
 }
 
 function saveSettings() {
-  setApiKey(dom.apiKeyInput.value);
   closeSettings();
-  showToast('API key saved!');
 }
 
 // =========================================================

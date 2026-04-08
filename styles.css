@@ -659,6 +659,29 @@ html, body {
 .settings-help a { color: var(--accent); text-decoration: none; }
 .settings-help a:hover { text-decoration: underline; }
 
+.settings-info-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.settings-info-row:last-child { border-bottom: none; padding-bottom: 0; }
+.settings-info-row:first-child { padding-top: 0; }
+
+.settings-info-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+.settings-info-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--text); margin-bottom: 4px;
+}
+
+.settings-body code {
+  background: var(--surface3); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 1px 5px;
+  font-size: 11px; font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--accent-h);
+}
+
+.settings-body em { font-style: italic; color: var(--text-dim); }
+
 .settings-footer {
   display: flex; justify-content: flex-end; gap: 8px;
   padding: 12px 18px; border-top: 1px solid var(--border);

@@ -228,28 +228,44 @@
     </div>
   </aside>
 
-  <!-- ── Settings Modal ── -->
+  <!-- ── Settings / Info Modal ── -->
   <div class="modal-overlay" id="settings-overlay" hidden></div>
   <div class="settings-modal" id="settings-modal" hidden>
     <div class="settings-header">
-      <h3>Settings</h3>
+      <h3>Dictionary Info</h3>
       <button class="icon-btn" id="btn-close-settings">✕</button>
     </div>
     <div class="settings-body">
-      <div class="field-group">
-        <label>KRDict API Key</label>
-        <input type="text" id="api-key-input" placeholder="Paste your KRDict API key…" autocomplete="off" spellcheck="false">
-        <p class="settings-help">
-          Get a free key at
-          <a href="https://krdict.korean.go.kr/openApi/openApiInfo" target="_blank" rel="noopener">krdict.korean.go.kr</a>
-          → "API 신청" (API Apply).
-          The key is stored only in your browser.
-        </p>
+      <div class="settings-info-row">
+        <div class="settings-info-icon">📖</div>
+        <div>
+          <p class="settings-info-title">In-app dictionary</p>
+          <p class="settings-help">
+            Uses <strong>Wiktionary</strong> — free, no account needed.
+            Coverage is best for common words. If a word isn't found, try
+            its base (dictionary) form.
+          </p>
+        </div>
+      </div>
+      <div class="settings-info-row">
+        <div class="settings-info-icon">🤖</div>
+        <div>
+          <p class="settings-info-title">Richer lookups via MCP server</p>
+          <p class="settings-help">
+            A local MCP server is included in <code>docsync-mcp/</code>.
+            Once running, ask Claude Code directly:<br>
+            <em>"Look up 사랑"</em> or <em>"What does 감사합니다 mean?"</em><br>
+            Claude will look up the word and explain it in context.
+          </p>
+          <p class="settings-help" style="margin-top:6px">
+            To start it: open a terminal in <code>docsync-mcp/</code>, run
+            <code>npm install</code> then add it to Claude Code settings.
+          </p>
+        </div>
       </div>
     </div>
     <div class="settings-footer">
-      <button class="btn btn-ghost btn-sm" id="settings-cancel">Cancel</button>
-      <button class="btn btn-primary btn-sm" id="settings-save">Save</button>
+      <button class="btn btn-primary btn-sm" id="settings-save">Got it</button>
     </div>
   </div>
 
