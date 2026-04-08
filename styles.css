@@ -1,0 +1,790 @@
+/* =========================================================
+   DocSync — Side-by-Side Translation App
+   ========================================================= */
+
+/* Ensure [hidden] always wins over display:flex/block overrides */
+[hidden] { display: none !important; }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:        #0d0d0d;
+  --surface:   #161616;
+  --surface2:  #1e1e1e;
+  --surface3:  #252525;
+  --border:    #2a2a2a;
+  --border2:   #333;
+  --text:      #e8e8e8;
+  --text-dim:  #888;
+  --text-mute: #555;
+  --accent:    #6c63ff;
+  --accent-h:  #8b84ff;
+  --accent-lo: rgba(108, 99, 255, 0.15);
+  --en-color:  #4a9eff;
+  --ko-color:  #ff6b9d;
+  --danger:    #ff4d4d;
+  --success:   #3ecf8e;
+  --radius:    8px;
+  --radius-lg: 12px;
+  --header-h:  56px;
+  --font:      -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Header ── */
+.app-header {
+  height: var(--header-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.tagline {
+  font-size: 12px;
+  color: var(--text-mute);
+  letter-spacing: 0.02em;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  font-family: var(--font);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent-h); border-color: var(--accent-h); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border-color: var(--border2);
+}
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: transparent;
+}
+.btn-danger:hover { background: rgba(255, 77, 77, 0.1); }
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s, color 0.15s;
+  font-family: var(--font);
+}
+.icon-btn:hover { background: var(--surface3); color: var(--text); }
+.icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.upload-btn:hover { background: var(--surface3); color: var(--text); }
+
+/* ── Main layout ── */
+.app-main {
+  height: calc(100vh - var(--header-h));
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── PDF Panels ── */
+.pdf-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  height: 46px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  flex-shrink: 0;
+}
+
+.panel-lang {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.lang-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.lang-dot.en { background: var(--en-color); }
+.lang-dot.ko { background: var(--ko-color); }
+
+.page-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.page-info {
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 48px;
+  text-align: center;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+
+.zoom-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 36px;
+  text-align: center;
+}
+
+/* ── Drop zone ── */
+.pdf-drop-zone {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-drop-zone.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+  background: var(--accent-lo);
+}
+
+.drop-prompt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-mute);
+  text-align: center;
+  padding: 40px;
+  user-select: none;
+}
+
+.drop-prompt svg {
+  opacity: 0.4;
+}
+
+.drop-prompt p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.drop-prompt strong {
+  color: var(--text-dim);
+}
+
+/* ── PDF scroll container ── */
+.pdf-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: var(--bg);
+  scroll-behavior: smooth;
+}
+
+.pdf-scroll-container::-webkit-scrollbar { width: 6px; height: 6px; }
+.pdf-scroll-container::-webkit-scrollbar-track { background: transparent; }
+.pdf-scroll-container::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.pdf-scroll-container::-webkit-scrollbar-thumb:hover { background: #444; }
+
+.pdf-pages-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  gap: 16px;
+  min-height: 100%;
+}
+
+.pdf-page-container {
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  border-radius: 2px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.pdf-page-container canvas {
+  display: block;
+}
+
+/* PDF.js text layer */
+.pdf-page-container .textLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  line-height: 1;
+  pointer-events: auto;
+}
+
+.pdf-page-container .textLayer span {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.pdf-page-container .textLayer span::selection {
+  background: rgba(108, 99, 255, 0.35);
+  color: transparent;
+}
+
+/* ── Divider ── */
+.panel-divider {
+  width: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* ── Highlight popup ── */
+.highlight-popup {
+  position: fixed;
+  z-index: 200;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  width: 320px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.highlight-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  background: rgba(0,0,0,0.4);
+}
+
+.popup-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.popup-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-group label {
+  font-size: 11px;
+  color: var(--text-mute);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.field-group textarea,
+.field-group input[type="text"] {
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  padding: 8px 10px;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.field-group textarea:focus,
+.field-group input[type="text"]:focus {
+  border-color: var(--accent);
+}
+
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Flashcard panel ── */
+.flashcard-panel {
+  position: fixed;
+  top: var(--header-h);
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.fc-panel-header {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.fc-panel-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── FC List view ── */
+#fc-list-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+#fc-list-view::-webkit-scrollbar { width: 4px; }
+#fc-list-view::-webkit-scrollbar-track { background: transparent; }
+#fc-list-view::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.fc-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.fc-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fc-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s;
+}
+
+.fc-item:hover { border-color: var(--border2); }
+
+.fc-item-front {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fc-item-back {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.fc-item-notes {
+  font-size: 11px;
+  color: var(--text-mute);
+  font-style: italic;
+}
+
+.fc-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 4px;
+  gap: 4px;
+}
+
+/* ── Study mode ── */
+#fc-study-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  gap: 20px;
+}
+
+.study-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.study-counter {
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 40px;
+  text-align: center;
+}
+
+.study-card {
+  width: 100%;
+  height: 200px;
+  perspective: 800px;
+  cursor: pointer;
+}
+
+.study-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-lg);
+}
+
+.study-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.study-face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  gap: 12px;
+  border: 1px solid var(--border2);
+}
+
+.study-face.front {
+  background: var(--surface2);
+}
+
+.study-face.back {
+  background: var(--surface3);
+  transform: rotateY(180deg);
+}
+
+.face-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-mute);
+  font-weight: 600;
+}
+
+.study-face p {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.study-notes {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: var(--text-mute) !important;
+  font-style: italic;
+}
+
+.flip-hint {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 999;
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Print sheet (hidden on screen) ── */
+.print-sheet { display: none; }
+
+/* ── Loading spinner ── */
+.pdf-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--text-mute);
+  font-size: 13px;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Page label overlay ── */
+.page-label {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 10px;
+  color: var(--text-mute);
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--font);
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .app-main { flex-direction: column; }
+  .panel-divider { width: 100%; height: 1px; }
+  .pdf-panel { height: 50%; }
+  .flashcard-panel { width: 100%; top: auto; bottom: 0; height: 60%; }
+  .tagline { display: none; }
+}
+
+/* =========================================================
+   PRINT STYLES
+   ========================================================= */
+@media print {
+  body * { visibility: hidden; }
+  .print-sheet, .print-sheet * { visibility: visible; }
+  .print-sheet {
+    display: block !important;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    background: #fff;
+    color: #111;
+  }
+
+  .print-header {
+    text-align: center;
+    padding: 20px 20px 10px;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+  }
+
+  .print-header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .print-date {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .print-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 20px 20px;
+  }
+
+  .print-card {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 14px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .print-card-front {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .print-card-back {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  .print-card-notes {
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
+  }
+
+  .print-card-num {
+    font-size: 10px;
+    color: #bbb;
+    margin-bottom: 8px;
+  }
+}

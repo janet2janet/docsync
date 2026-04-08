@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocSync — Side-by-Side Translation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <span class="logo">DocSync</span>
+      <span class="tagline">Side-by-Side Translation</span>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-ghost" id="btn-flashcards" title="Open Flashcards (F)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        Flashcards
+        <span class="badge" id="flashcard-count">0</span>
+      </button>
+      <button class="btn btn-primary" id="btn-download" title="Print / Download Flashcards">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print / Save
+      </button>
+    </div>
+  </header>
+
+  <!-- Main viewer -->
+  <main class="app-main">
+
+    <!-- English Panel -->
+    <section class="pdf-panel" id="panel-en">
+      <div class="panel-header">
+        <div class="panel-lang">
+          <span class="lang-dot en"></span>
+          English
+        </div>
+        <label class="upload-btn" for="upload-en" title="Upload English PDF">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload PDF
+        </label>
+        <input type="file" id="upload-en" accept=".pdf" hidden>
+        <div class="page-controls" id="controls-en" hidden>
+          <button class="icon-btn" id="prev-en" title="Previous page">&#8592;</button>
+          <span class="page-info" id="page-info-en">1 / 1</span>
+          <button class="icon-btn" id="next-en" title="Next page">&#8594;</button>
+          <div class="zoom-controls">
+            <button class="icon-btn" id="zoom-out-en" title="Zoom out">−</button>
+            <span class="zoom-label" id="zoom-label-en">100%</span>
+            <button class="icon-btn" id="zoom-in-en" title="Zoom in">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="pdf-drop-zone" id="drop-en">
+        <div class="drop-prompt">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <p>Drop your <strong>English PDF</strong> here<br>or click Upload above</p>
+        </div>
+        <div class="pdf-scroll-container" id="viewer-en" hidden></div>
+      </div>
+    </section>
+
+    <!-- Divider -->
+    <div class="panel-divider" id="panel-divider">
+      <div class="divider-line"></div>
+    </div>
+
+    <!-- Korean Panel -->
+    <section class="pdf-panel" id="panel-ko">
+      <div class="panel-header">
+        <div class="panel-lang">
+          <span class="lang-dot ko"></span>
+          Korean
+        </div>
+        <label class="upload-btn" for="upload-ko" title="Upload Korean PDF">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload PDF
+        </label>
+        <input type="file" id="upload-ko" accept=".pdf" hidden>
+        <div class="page-controls" id="controls-ko" hidden>
+          <button class="icon-btn" id="prev-ko" title="Previous page">&#8592;</button>
+          <span class="page-info" id="page-info-ko">1 / 1</span>
+          <button class="icon-btn" id="next-ko" title="Next page">&#8594;</button>
+          <div class="zoom-controls">
+            <button class="icon-btn" id="zoom-out-ko" title="Zoom out">−</button>
+            <span class="zoom-label" id="zoom-label-ko">100%</span>
+            <button class="icon-btn" id="zoom-in-ko" title="Zoom in">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="pdf-drop-zone" id="drop-ko">
+        <div class="drop-prompt">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <p>Drop your <strong>Korean PDF</strong> here<br>or click Upload above</p>
+        </div>
+        <div class="pdf-scroll-container" id="viewer-ko" hidden></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Highlight popup -->
+  <div class="highlight-popup" id="highlight-popup" hidden>
+    <p class="popup-label">Add to Flashcards</p>
+    <div class="popup-fields">
+      <div class="field-group">
+        <label>Front (term)</label>
+        <textarea id="card-front" rows="2" placeholder="Selected text or term…"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Back (definition / translation)</label>
+        <textarea id="card-back" rows="2" placeholder="Translation or definition…"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="card-notes" placeholder="e.g. context, pronunciation…">
+      </div>
+    </div>
+    <div class="popup-actions">
+      <button class="btn btn-ghost btn-sm" id="popup-cancel">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="popup-save">Save Card</button>
+    </div>
+  </div>
+  <div class="highlight-overlay" id="highlight-overlay" hidden></div>
+
+  <!-- Flashcard panel -->
+  <aside class="flashcard-panel" id="flashcard-panel" hidden>
+    <div class="fc-panel-header">
+      <h2>Flashcards</h2>
+      <div class="fc-header-actions">
+        <button class="btn btn-ghost btn-sm" id="btn-study-mode">Study Mode</button>
+        <button class="icon-btn" id="btn-close-fc" title="Close">✕</button>
+      </div>
+    </div>
+
+    <!-- List view -->
+    <div id="fc-list-view">
+      <div class="fc-empty" id="fc-empty">
+        <p>No cards yet.<br>Select text in a PDF to add your first card.</p>
+      </div>
+      <ul class="fc-list" id="fc-list"></ul>
+    </div>
+
+    <!-- Study view -->
+    <div id="fc-study-view" hidden>
+      <div class="study-nav">
+        <button class="icon-btn" id="study-prev">&#8592;</button>
+        <span class="study-counter" id="study-counter">1 / 1</span>
+        <button class="icon-btn" id="study-next">&#8594;</button>
+      </div>
+      <div class="study-card" id="study-card">
+        <div class="study-card-inner" id="study-card-inner">
+          <div class="study-face front">
+            <span class="face-label">Front</span>
+            <p id="study-front-text"></p>
+          </div>
+          <div class="study-face back">
+            <span class="face-label">Back</span>
+            <p id="study-back-text"></p>
+            <p class="study-notes" id="study-notes-text"></p>
+          </div>
+        </div>
+      </div>
+      <p class="flip-hint">Click card to flip</p>
+      <button class="btn btn-ghost btn-sm" id="btn-exit-study" style="margin: 0 auto; display:block;">Back to List</button>
+    </div>
+  </aside>
+
+  <!-- Print-only flashcard sheet (hidden on screen) -->
+  <div class="print-sheet" id="print-sheet">
+    <div class="print-header">
+      <h1>Vocabulary Flashcards</h1>
+      <p class="print-date" id="print-date"></p>
+    </div>
+    <div class="print-cards" id="print-cards"></div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
