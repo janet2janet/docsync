@@ -807,7 +807,6 @@ function init() {
   $('btn-settings').addEventListener('click', openSettings);
   dom.settingsOverlay.addEventListener('click', closeSettings);
   $('btn-close-settings').addEventListener('click', closeSettings);
-  $('settings-cancel').addEventListener('click', closeSettings);
   $('settings-save').addEventListener('click', saveSettings);
 
   // Print
