@@ -742,9 +742,12 @@ html, body {
    PRINT STYLES
    ========================================================= */
 @media print {
-  body * { visibility: hidden; }
-  .print-sheet, .print-sheet * { visibility: visible; }
-  .print-sheet {
+
+  /* ── Flashcard print (PDF view) ── */
+  body:not(.print-parallel) * { visibility: hidden; }
+  body:not(.print-parallel) .print-sheet,
+  body:not(.print-parallel) .print-sheet * { visibility: visible; }
+  body:not(.print-parallel) .print-sheet {
     display: block !important; position: fixed;
     top: 0; left: 0; width: 100%;
     background: #fff; color: #111;
@@ -770,4 +773,48 @@ html, body {
   .print-card-back { font-size: 13px; color: #333; margin-bottom: 4px; }
   .print-card-notes { font-size: 11px; color: #888; font-style: italic; }
   .print-card-num { font-size: 10px; color: #bbb; margin-bottom: 8px; }
+
+  /* ── Parallel lines print ── */
+  body.print-parallel .app-header,
+  body.print-parallel #pdf-view,
+  body.print-parallel .flashcard-panel,
+  body.print-parallel .dict-sidebar,
+  body.print-parallel .sel-bar,
+  body.print-parallel .card-modal,
+  body.print-parallel .modal-overlay,
+  body.print-parallel .settings-modal,
+  body.print-parallel .toast,
+  body.print-parallel .print-sheet { display: none !important; }
+
+  body.print-parallel #parallel-view {
+    display: flex !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body.print-parallel .parallel-body {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  body.print-parallel .parallel-toolbar {
+    background: #f5f5f5 !important;
+    border-color: #ccc !important;
+  }
+  body.print-parallel .par-col-header {
+    color: #333 !important;
+    border-color: #ccc !important;
+  }
+  body.print-parallel .par-page-sep {
+    position: static !important;
+    background: #eee !important;
+    color: #444 !important;
+    border-color: #ccc !important;
+  }
+  body.print-parallel .par-row {
+    border-color: #ddd !important;
+    break-inside: avoid;
+  }
+  body.print-parallel .par-cell {
+    color: #111 !important;
+    border-color: #ddd !important;
+  }
 }

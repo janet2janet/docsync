@@ -255,44 +255,50 @@ async function extractParagraphs(doc) {
     const page    = await doc.getPage(i);
     const content = await page.getTextContent();
 
-    // Filter empty items, sort top-to-bottom then left-to-right
-    const items = content.items
-      .filter(it => it.str.trim().length > 0)
-      .sort((a, b) => {
-        const yDiff = b.transform[5] - a.transform[5];
-        if (Math.abs(yDiff) > 4) return yDiff;
-        return a.transform[4] - b.transform[4];
-      });
+    const items = content.items.filter(it => it.str && it.str.trim());
+    if (!items.length) { pages.push({ pageNum: i, paragraphs: [] }); continue; }
 
-    // Group into lines by Y proximity
+    // Sort top-to-bottom, then left-to-right within the same line
+    items.sort((a, b) => {
+      const yDiff = b.transform[5] - a.transform[5];
+      if (Math.abs(yDiff) > 4) return yDiff;
+      return a.transform[4] - b.transform[4];
+    });
+
+    // Bucket items into lines: items within 5 pts of Y share a line
     const lines = [];
-    let curLine = [], lastY = null;
     for (const item of items) {
-      const y = item.transform[5];
-      if (lastY === null || Math.abs(y - lastY) <= 5) {
-        curLine.push(item.str);
-        lastY = y;
+      const y    = item.transform[5];
+      const last = lines[lines.length - 1];
+      if (last && Math.abs(y - last.y) <= 5) {
+        last.parts.push(item.str);
       } else {
-        if (curLine.length) lines.push({ text: curLine.join(' ').replace(/\s+/g, ' ').trim(), y: lastY });
-        curLine = [item.str];
-        lastY   = y;
+        lines.push({ y, parts: [item.str] });
       }
     }
-    if (curLine.length) lines.push({ text: curLine.join(' ').replace(/\s+/g, ' ').trim(), y: lastY });
 
-    // Group lines into paragraphs by Y gaps > threshold
+    // Measure the *median* Y-gap between consecutive lines.
+    // This adapts to whatever font size / line-height the PDF uses —
+    // works for Korean (세로 간격), English, and mixed documents.
+    const gaps = [];
+    for (let j = 1; j < lines.length; j++) {
+      gaps.push(Math.abs(lines[j - 1].y - lines[j].y));
+    }
+    gaps.sort((a, b) => a - b);
+    const medianGap = gaps[Math.floor(gaps.length / 2)] || 12;
+    const paraBreak = medianGap * 2.0; // gap > 2× typical line-height = new paragraph
+
+    // Group lines into paragraphs
     const paragraphs = [];
-    let curPara = [], lastLineY = null;
-    const GAP = 20; // pts — adjust if paragraphs don't split right
-    for (const line of lines) {
-      if (lastLineY === null || Math.abs(line.y - lastLineY) <= GAP) {
-        curPara.push(line.text);
-        lastLineY = line.y;
-      } else {
+    let curPara = [];
+    for (let j = 0; j < lines.length; j++) {
+      const lineText = lines[j].parts.join('').replace(/\s+/g, ' ').trim();
+      if (!lineText) continue;
+      if (j > 0 && Math.abs(lines[j - 1].y - lines[j].y) > paraBreak) {
         if (curPara.length) paragraphs.push(curPara.join(' '));
-        curPara = [line.text];
-        lastLineY = line.y;
+        curPara = [];
       }
+      curPara.push(lineText);
     }
     if (curPara.length) paragraphs.push(curPara.join(' '));
 
@@ -664,6 +670,24 @@ function saveSettings() {
 // =========================================================
 
 function openPrint() {
+  if (state.view === 'parallel') {
+    printParallelLines();
+  } else {
+    printFlashcards();
+  }
+}
+
+function printParallelLines() {
+  if (!state.en.doc && !state.ko.doc) {
+    showToast('Upload at least one PDF first.');
+    return;
+  }
+  document.body.classList.add('print-parallel');
+  window.print();
+  document.body.classList.remove('print-parallel');
+}
+
+function printFlashcards() {
   if (!state.flashcards.length) { showToast('No flashcards to print.'); return; }
   dom.printDate.textContent = `Generated ${new Date().toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric'
@@ -719,21 +743,26 @@ function init() {
 
   // Selection → action bar
   document.addEventListener('mouseup', e => {
-    // Don't trigger while a modal is open
     if (!dom.cardModal.hidden || !dom.settingsModal.hidden) return;
-    // Don't trigger if click was inside the action bar or sidebars
     if (dom.selBar.contains(e.target)) return;
 
-    setTimeout(() => {
+    const cx = e.clientX, cy = e.clientY;
+
+    const check = () => {
       const result = getSelection();
       if (result && result.text.length > 0) {
         state.selText = result.text;
         state.selLang = result.lang;
-        showSelBar(e.clientX, e.clientY);
+        showSelBar(cx, cy);
       } else {
         hideSelBar();
       }
-    }, 10);
+    };
+
+    // Parallel-view cells are plain HTML — selection is ready immediately.
+    // PDF text-layer spans need a tick for the browser to finalise the range.
+    check();
+    if (dom.selBar.hidden) setTimeout(check, 60);
   });
 
   // Clicking elsewhere hides the action bar
